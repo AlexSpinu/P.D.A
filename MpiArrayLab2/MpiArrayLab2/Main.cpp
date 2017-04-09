@@ -29,34 +29,34 @@ int main(int argc, char *argv[])
 
 	srand(time(NULL));
 	
-
 	for (i = 0; i < MAXSIZE; i++) {
-		array[i] = rand();
+		array[i] = rand() % 100 + 1;
 	}
 
 	if (rank == FIRST) {
-		for (i = 0; i < MAXSIZE; i++) {
+		for (i = 0; i < MAXSIZE ; i++) {
 			printf("%d ", array[i]);
 		}
 
-			for (i = 0; i < MAXSIZE; i++) {
+			for (i = 0; i < MAXSIZE / numprocs; i++) {
 				if (array[i] == ELEMENT) {
 					position = i;
 					printf("I got %d possition from process %d\n", position, rank);
 					
 				}
 			}
+			
 	}
-	//Broadcast data
-	MPI_Bcast(array, MAXSIZE, MPI_INT, FIRST, MPI_COMM_WORLD);
-	// add portion of data 
-	x = MAXSIZE / numprocs; // must be an integer 
-	low = rank * x;
-	high = low + x;
-	for (i = low; i < high; i++) {
-		if (array[i] == ELEMENT) 
-			position = i;	
-	}
+	MPI_Bcast(array, MAXSIZE, MPI_INT, 0, MPI_COMM_WORLD);
+
+		x = MAXSIZE / numprocs; 
+		low = rank * x;
+		high = low + x;
+		for (i = low; i < high; i++) {
+			if (array[i] == ELEMENT)
+				position = i;
+		}
+	
 	MPI_Reduce(&position, &maxPosition, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
 
 	if (FIRST == rank) {
