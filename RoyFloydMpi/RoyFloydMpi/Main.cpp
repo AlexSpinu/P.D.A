@@ -1,75 +1,67 @@
-#include <stdio.h>
 #include "mpi.h"
+#include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#define MASTER 0
-#define WORKTAG 1
-#define DIETAG 2
-#define n 5 //Number of nodes
 
-int dist[n][n]; /* dist[i][j] is the length of the edge between i and j if
-				it exists, or 0 if it does not */
+#define INF 999
+#define SIZE 4
 
-void printDist() {
-	int i, j;
-	printf("    ");
-	for (i = 0; i < n; ++i)
-		printf("%4c", 'A' + i);
-	printf("\n");
-	for (i = 0; i < n; ++i) {
-		printf("%4c", 'A' + i);
-		for (j = 0; j < n; ++j)
-			printf("%4d", dist[i][j]);
-		printf("\n");
-	}
-	printf("\n");
-}
+int main(int argc, char *argv[])
 
-int main(int argc, char *argv[]) {
+{
+	int i;
+	int j;
+	int k;
+	int mat[SIZE][SIZE] = {
 
-	int my_rank,                
-		num_procs,              
-		slice,
-		ypoloipo = 0;
-	MPI_Status status;
-	
+		{0,   8,  INF,    1 },
+		{INF,   0,  1,	INF },
+		{4,  INF,  0,   INF },
+		{INF, 2,  9,    0 },
+
+	};
+
+	int min[SIZE][SIZE];
+
+
+	int numprocs, rank;
+
 	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 
-	
-	if (my_rank == MASTER) {
-		int disable = 0;
-		int t = 3;
-		int result[3];
-		//initialize dist[][]
-		int i, j;
-		for (i = 0; i < n; ++i)
-			for (j = 0; j < n; ++j)
-				if (i == j)
-					dist[i][j] = 0;
-				else
-					dist[i][j] = rand() % 10 + 1;
+	for (k = 0; k < SIZE; k++)
+	{
+		for (i = rank; i < SIZE; i = i + numprocs)
+		{
+			for (j = 0; j < SIZE; j++)
+			{
+				if (mat[i][k] + mat[k][j] < mat[i][j])
 
-		printDist();
-		
-		for (i = 1; i<num_procs; i++)
-			MPI_Send(&dist, n*n, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
+					mat[i][j] = mat[i][k] + mat[k][j];
+			}
+		}
 
-		do {
-			MPI_Recv(&result, t, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-			if (status.MPI_TAG == DIETAG)
-				disable++;
-			else
-				if (dist[result[1]][result[2]]>result[0])
-					dist[result[1]][result[2]] = result[0];
-		} while (disable < num_procs - 1);
-		
-		printDist();
-		
+		MPI_Allreduce(mat, min, SIZE * SIZE, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+
+		if (rank == 0)
+		{
+			printf("The min costs are ");
+
+			for (i = 0; i < SIZE; i++)
+			{
+				for (j = 0; j < SIZE; j++)
+				{
+					printf("%d ", min[i][j]);
+				}
+				printf("\n");
+			}
+
 	}
-	
+
 	MPI_Finalize();
 
-	return 0;
+	
+	}
+
 }
+
